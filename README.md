@@ -40,22 +40,22 @@ $client = new Client( 'your-google-api-key' );
 
 // Using fluent interface
 $result = $client
-    ->set_mode( 'driving' )
-    ->set_units( 'imperial' )
-    ->set_avoid( 'tolls' )
-    ->calculate( 'New York, NY', 'Boston, MA' );
+	->set_mode( 'driving' )
+	->set_units( 'imperial' )
+	->set_avoid( 'tolls' )
+	->calculate( 'New York, NY', 'Boston, MA' );
 
-if (!is_wp_error($result)) {
-    // Get distance and duration
-    $distance = $result->get_formatted_distance( 0, 0 );
-    $duration = $result->get_formatted_duration( 0, 0 );
-    
-    echo "Distance: {$distance}\n";
-    echo "Duration: {$duration}\n";
-    
-    // Get raw values in meters/seconds
-    $meters = $result->get_distance_meters( 0, 0 );
-    $seconds = $result->get_duration_seconds( 0, 0 );
+if ( ! is_wp_error( $result ) ) {
+	// Get distance and duration
+	$distance = $result->get_formatted_distance();
+	$duration = $result->get_formatted_duration();
+
+	echo "Distance: {$distance}\n";
+	echo "Duration: {$duration}\n";
+
+	// Get raw values in meters/seconds
+	$meters  = $result->get_distance_meters();
+	$seconds = $result->get_duration_seconds();
 }
 ```
 
@@ -64,18 +64,18 @@ if (!is_wp_error($result)) {
 ```php
 // Set defaults for multiple calculations
 $client
-    ->set_mode( 'driving' )
-    ->set_units( 'imperial' )
-    ->set_language( 'en' );
+	->set_mode( 'driving' )
+	->set_units( 'imperial' )
+	->set_language( 'en' );
 
 // Use defaults
 $result1 = $client->calculate( 'New York, NY', 'Boston, MA' );
 
 // Override specific options
 $result2 = $client->calculate(
-    'New York, NY', 
-    'Boston, MA',
-    ['mode' => 'transit']
+	'New York, NY',
+	'Boston, MA',
+	[ 'mode' => 'transit' ]
 );
 
 // Reset to default options
@@ -86,29 +86,29 @@ $client->reset_options();
 
 ```php
 $origins = [
-    'San Francisco, CA',
-    'Los Angeles, CA'
+	'San Francisco, CA',
+	'Los Angeles, CA'
 ];
 
 $destinations = [
-    'Las Vegas, NV',
-    'Phoenix, AZ',
-    'San Diego, CA'
+	'Las Vegas, NV',
+	'Phoenix, AZ',
+	'San Diego, CA'
 ];
 
 $result = $client
-    ->set_mode( 'driving')
-    ->set_units( 'imperial')
-    ->calculate($origins, $destinations);
+	->set_mode( 'driving' )
+	->set_units( 'imperial' )
+	->calculate( $origins, $destinations );
 
-if (!is_wp_error($result)) {
-    $distances = $result->get_all_distances();
-    foreach ($distances as $route) {
-        echo "From: {$route['origin']}\n";
-        echo "To: {$route['destination']}\n";
-        echo "Distance: {$route['distance']['text']}\n";
-        echo "Duration: {$route['duration']['text']}\n\n";
-    }
+if ( ! is_wp_error( $result ) ) {
+	$distances = $result->get_all_distances();
+	foreach ( $distances as $route ) {
+		echo "From: {$route['origin']}\n";
+		echo "To: {$route['destination']}\n";
+		echo "Distance: {$route['distance']['text']}\n";
+		echo "Duration: {$route['duration']['text']}\n\n";
+	}
 }
 ```
 
