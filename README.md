@@ -14,6 +14,7 @@ A PHP library for integrating with the Google Distance Matrix API in WordPress. 
 - 🛡️ **Type Safety**: Full type hinting and strict types
 - 🚦 **Traffic Data**: Optional real-time traffic consideration
 - 🗺️ **Route Options**: Support for route restrictions and preferences
+- 🔗 **Fluent Interface**: Chainable methods for setting options
 
 ## Requirements
 
@@ -37,13 +38,14 @@ use ArrayPress\Google\DistanceMatrix\Client;
 // Initialize client with your API key
 $client = new Client( 'your-google-api-key' );
 
-// Calculate distance between two points
-$result = $client->calculate(
-    '1600 Amphitheatre Parkway, Mountain View, CA',
-    'Googleplex, Mountain View, CA'
-);
+// Using fluent interface
+$result = $client
+    ->set_mode( 'driving' )
+    ->set_units( 'imperial' )
+    ->set_avoid( 'tolls' )
+    ->calculate( 'New York, NY', 'Boston, MA' );
 
-if ( ! is_wp_error( $result ) ) {
+if (!is_wp_error($result)) {
     // Get distance and duration
     $distance = $result->get_formatted_distance( 0, 0 );
     $duration = $result->get_formatted_duration( 0, 0 );
@@ -57,10 +59,32 @@ if ( ! is_wp_error( $result ) ) {
 }
 ```
 
+## Setting Default Options
+
+```php
+// Set defaults for multiple calculations
+$client
+    ->set_mode( 'driving' )
+    ->set_units( 'imperial' )
+    ->set_language( 'en' );
+
+// Use defaults
+$result1 = $client->calculate( 'New York, NY', 'Boston, MA' );
+
+// Override specific options
+$result2 = $client->calculate(
+    'New York, NY', 
+    'Boston, MA',
+    ['mode' => 'transit']
+);
+
+// Reset to default options
+$client->reset_options();
+```
+
 ## Multiple Origins/Destinations
 
 ```php
-// Calculate distances between multiple points
 $origins = [
     'San Francisco, CA',
     'Los Angeles, CA'
@@ -72,15 +96,14 @@ $destinations = [
     'San Diego, CA'
 ];
 
-$result = $client->calculate( $origins, $destinations, [
-    'mode' => 'driving',
-    'units' => 'imperial'
-]);
+$result = $client
+    ->set_mode( 'driving')
+    ->set_units( 'imperial')
+    ->calculate($origins, $destinations);
 
-if (!is_wp_error( $result)) {
-    // Get all calculated distances
+if (!is_wp_error($result)) {
     $distances = $result->get_all_distances();
-    foreach ( $distances as $route) {
+    foreach ($distances as $route) {
         echo "From: {$route['origin']}\n";
         echo "To: {$route['destination']}\n";
         echo "Distance: {$route['distance']['text']}\n";
@@ -89,7 +112,54 @@ if (!is_wp_error( $result)) {
 }
 ```
 
-### Working with Options
+## Available Options
+
+### Travel Modes
+```php
+const VALID_MODES = [
+    'driving',
+    'walking',
+    'bicycling',
+    'transit'
+];
+```
+
+### Units
+```php
+const VALID_UNITS = [
+    'metric',
+    'imperial'
+];
+```
+
+### Avoid Options
+```php
+const VALID_AVOID = [
+    'tolls',
+    'highways',
+    'ferries'
+];
+```
+
+### Traffic Models
+```php
+const VALID_TRAFFIC_MODELS = [
+    'best_guess',
+    'pessimistic',
+    'optimistic'
+];
+```
+
+### Default Options
+```php
+const DEFAULT_OPTIONS = [
+    'mode' => 'driving',
+    'units' => 'metric',
+    'language' => 'en'
+];
+```
+
+### Working with Options Array
 
 ```php
 $result = $client->calculate(
@@ -109,10 +179,10 @@ $result = $client->calculate(
 
 ```php
 // Initialize with custom cache duration (1 hour = 3600 seconds)
-$client = new Client('your-api-key', true, 3600);
+$client = new Client( 'your-api-key', true, 3600 );
 
 // Results will be cached
-$result = $client->calculate( 'New York, NY', 'Boston, MA') ;
+$result = $client->calculate( 'New York, NY', 'Boston, MA' );
 
 // Clear specific cache
 $client->clear_cache( 'matrix_New York, NY_Boston, MA' );
@@ -125,7 +195,16 @@ $client->clear_cache();
 
 ### Client Methods
 
-* `calculate( $origins, $destinations, $options = [] )`: Calculate distances between origins and destinations
+#### Option Setters
+* `set_mode( string $mode )`: Set travel mode
+* `set_units( string $units )`: Set distance units
+* `set_avoid(?string $avoid )`: Set features to avoid
+* `set_language( string $language )`: Set response language
+* `set_traffic_model(?string $model )`: Set traffic model
+* `reset_options()`: Reset all options to defaults
+
+#### Core Methods
+* `calculate( $origins, $destinations, $options = [] )`: Calculate distances
 * `clear_cache( $identifier = null )`: Clear cached responses
 
 ### Response Methods
@@ -157,6 +236,8 @@ $client->clear_cache();
 * **Fleet Management**: Support for vehicle routing and planning
 * **Coverage Analysis**: Analyze service area coverage
 * **Location Planning**: Optimize location selection based on distance
+* **E-commerce Shipping**: Calculate shipping costs based on distance
+* **Service Radius**: Define service areas with time/distance constraints
 
 ## Contributing
 

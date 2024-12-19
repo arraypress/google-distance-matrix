@@ -75,12 +75,12 @@ class Response {
 	/**
 	 * Get distance between specific origin and destination
 	 *
-	 * @param int $origin_index      Index of the origin
-	 * @param int $destination_index Index of the destination
+	 * @param int $origin_index      Index of the origin (defaults to first origin)
+	 * @param int $destination_index Index of the destination (defaults to first destination)
 	 *
 	 * @return array|null Distance data or null if not found
 	 */
-	public function get_distance( int $origin_index, int $destination_index ): ?array {
+	public function get_distance( int $origin_index = 0, int $destination_index = 0 ): ?array {
 		$element = $this->get_element( $origin_index, $destination_index );
 
 		return $element ? $element['distance'] : null;
@@ -89,12 +89,12 @@ class Response {
 	/**
 	 * Get duration between specific origin and destination
 	 *
-	 * @param int $origin_index      Index of the origin
-	 * @param int $destination_index Index of the destination
+	 * @param int $origin_index      Index of the origin (defaults to first origin)
+	 * @param int $destination_index Index of the destination (defaults to first destination)
 	 *
 	 * @return array|null Duration data or null if not found
 	 */
-	public function get_duration( int $origin_index, int $destination_index ): ?array {
+	public function get_duration( int $origin_index = 0, int $destination_index = 0 ): ?array {
 		$element = $this->get_element( $origin_index, $destination_index );
 
 		return $element ? $element['duration'] : null;
@@ -108,7 +108,7 @@ class Response {
 	 *
 	 * @return array|null Element data or null if not found
 	 */
-	public function get_element( int $origin_index, int $destination_index ): ?array {
+	public function get_element( int $origin_index = 0, int $destination_index = 0 ): ?array {
 		return $this->data['rows'][ $origin_index ]['elements'][ $destination_index ] ?? null;
 	}
 
@@ -120,7 +120,7 @@ class Response {
 	 *
 	 * @return string|null Status or null if not found
 	 */
-	public function get_element_status( int $origin_index, int $destination_index ): ?string {
+	public function get_element_status( int $origin_index = 0, int $destination_index = 0 ): ?string {
 		$element = $this->get_element( $origin_index, $destination_index );
 
 		return $element ? $element['status'] : null;
@@ -134,7 +134,7 @@ class Response {
 	 *
 	 * @return string|null Formatted distance or null if not found
 	 */
-	public function get_formatted_distance( int $origin_index, int $destination_index ): ?string {
+	public function get_formatted_distance( int $origin_index = 0, int $destination_index = 0 ): ?string {
 		$distance = $this->get_distance( $origin_index, $destination_index );
 
 		return $distance ? $distance['text'] : null;
@@ -148,7 +148,7 @@ class Response {
 	 *
 	 * @return int|null Distance in meters or null if not found
 	 */
-	public function get_distance_meters( int $origin_index, int $destination_index ): ?int {
+	public function get_distance_meters( int $origin_index = 0, int $destination_index = 0 ): ?int {
 		$distance = $this->get_distance( $origin_index, $destination_index );
 
 		return $distance ? $distance['value'] : null;
@@ -162,7 +162,7 @@ class Response {
 	 *
 	 * @return string|null Formatted duration or null if not found
 	 */
-	public function get_formatted_duration( int $origin_index, int $destination_index ): ?string {
+	public function get_formatted_duration( int $origin_index = 0, int $destination_index = 0 ): ?string {
 		$duration = $this->get_duration( $origin_index, $destination_index );
 
 		return $duration ? $duration['text'] : null;
@@ -176,7 +176,7 @@ class Response {
 	 *
 	 * @return int|null Duration in seconds or null if not found
 	 */
-	public function get_duration_seconds( int $origin_index, int $destination_index ): ?int {
+	public function get_duration_seconds( int $origin_index = 0, int $destination_index = 0 ): ?int {
 		$duration = $this->get_duration( $origin_index, $destination_index );
 
 		return $duration ? $duration['value'] : null;
@@ -227,11 +227,11 @@ class Response {
 	/**
 	 * Find the nearest destination to an origin
 	 *
-	 * @param int $origin_index Index of the origin
+	 * @param int $origin_index Index of the origin (defaults to first origin)
 	 *
 	 * @return array|null Array with destination info or null if none found
 	 */
-	public function find_nearest_destination( int $origin_index ): ?array {
+	public function find_nearest_destination( int $origin_index = 0 ): ?array {
 		$row = $this->data['rows'][ $origin_index ]['elements'] ?? [];
 		if ( empty( $row ) ) {
 			return null;

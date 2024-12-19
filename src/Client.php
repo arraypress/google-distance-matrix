@@ -23,18 +23,73 @@ use WP_Error;
 class Client {
 
 	/**
+	 * API endpoint for the Distance Matrix API
+	 *
+	 * @var string
+	 */
+	private const API_ENDPOINT = 'https://maps.googleapis.com/maps/api/distancematrix/json';
+
+	/**
+	 * Valid travel modes
+	 *
+	 * @var array<string>
+	 */
+	private const VALID_MODES = [
+		'driving',
+		'walking',
+		'bicycling',
+		'transit'
+	];
+
+	/**
+	 * Valid units
+	 *
+	 * @var array<string>
+	 */
+	private const VALID_UNITS = [
+		'metric',
+		'imperial'
+	];
+
+	/**
+	 * Valid avoid options
+	 *
+	 * @var array<string>
+	 */
+	private const VALID_AVOID = [
+		'tolls',
+		'highways',
+		'ferries'
+	];
+
+	/**
+	 * Valid traffic model options
+	 *
+	 * @var array<string>
+	 */
+	private const VALID_TRAFFIC_MODELS = [
+		'best_guess',
+		'pessimistic',
+		'optimistic'
+	];
+
+	/**
+	 * Default options for API requests
+	 *
+	 * @var array<string, string>
+	 */
+	private const DEFAULT_OPTIONS = [
+		'mode'     => 'driving',
+		'units'    => 'metric',
+		'language' => 'en'
+	];
+
+	/**
 	 * API key for Google Distance Matrix
 	 *
 	 * @var string
 	 */
 	private string $api_key;
-
-	/**
-	 * Base URL for the Distance Matrix API
-	 *
-	 * @var string
-	 */
-	private const API_ENDPOINT = 'https://maps.googleapis.com/maps/api/distancematrix/json';
 
 	/**
 	 * Whether to enable response caching
@@ -51,6 +106,13 @@ class Client {
 	private int $cache_expiration;
 
 	/**
+	 * Current options for the client
+	 *
+	 * @var array<string, string|null>
+	 */
+	private array $options;
+
+	/**
 	 * Initialize the Distance Matrix client
 	 *
 	 * @param string $api_key          API key for Google Distance Matrix
@@ -61,13 +123,106 @@ class Client {
 		$this->api_key          = $api_key;
 		$this->enable_cache     = $enable_cache;
 		$this->cache_expiration = $cache_expiration;
+		$this->options          = self::DEFAULT_OPTIONS;
+	}
+
+	/**
+	 * Set travel mode
+	 *
+	 * @param string $mode Travel mode (driving, walking, bicycling, transit)
+	 *
+	 * @return self
+	 * @throws \InvalidArgumentException If invalid mode provided
+	 */
+	public function set_mode( string $mode ): self {
+		if ( ! in_array( $mode, self::VALID_MODES ) ) {
+			throw new \InvalidArgumentException( "Invalid mode. Must be one of: " . implode( ', ', self::VALID_MODES ) );
+		}
+		$this->options['mode'] = $mode;
+
+		return $this;
+	}
+
+	/**
+	 * Set units for distance
+	 *
+	 * @param string $units Units (metric, imperial)
+	 *
+	 * @return self
+	 * @throws \InvalidArgumentException If invalid units provided
+	 */
+	public function set_units( string $units ): self {
+		if ( ! in_array( $units, self::VALID_UNITS ) ) {
+			throw new \InvalidArgumentException( "Invalid units. Must be one of: " . implode( ', ', self::VALID_UNITS ) );
+		}
+		$this->options['units'] = $units;
+
+		return $this;
+	}
+
+	/**
+	 * Set avoid options
+	 *
+	 * @param string|null $avoid Features to avoid (tolls, highways, ferries)
+	 *
+	 * @return self
+	 * @throws \InvalidArgumentException If invalid avoid option provided
+	 */
+	public function set_avoid( ?string $avoid ): self {
+		if ( $avoid !== null && ! in_array( $avoid, self::VALID_AVOID ) ) {
+			throw new \InvalidArgumentException( "Invalid avoid option. Must be one of: " . implode( ', ', self::VALID_AVOID ) );
+		}
+		$this->options['avoid'] = $avoid;
+
+		return $this;
+	}
+
+	/**
+	 * Set language for results
+	 *
+	 * @param string $language Language code
+	 *
+	 * @return self
+	 */
+	public function set_language( string $language ): self {
+		$this->options['language'] = $language;
+
+		return $this;
+	}
+
+	/**
+	 * Set traffic model
+	 *
+	 * @param string|null $model Traffic model (best_guess, pessimistic, optimistic)
+	 *
+	 * @return self
+	 * @throws \InvalidArgumentException If invalid traffic model provided
+	 */
+	public function set_traffic_model( ?string $model ): self {
+		if ( $model !== null && ! in_array( $model, self::VALID_TRAFFIC_MODELS ) ) {
+			throw new \InvalidArgumentException( "Invalid traffic model. Must be one of: " . implode( ', ', self::VALID_TRAFFIC_MODELS ) );
+		}
+		$this->options['traffic_model'] = $model;
+
+		return $this;
+	}
+
+	/**
+	 * Reset options to defaults
+	 *
+	 * @return self
+	 */
+	public function reset_options(): self {
+		$this->options = self::DEFAULT_OPTIONS;
+
+		return $this;
 	}
 
 	/**
 	 * Calculate distances between origins and destinations
 	 *
-	 * @param array|string $origins      Array of origins or single origin
-	 * @param array|string $destinations Array of destinations or single destination
+	 * @param string|array $origins      Single origin or array of origins
+	 * @param string|array $destinations Single destination or array of destinations
 	 * @param array        $options      Additional options for the request
 	 *
 	 * @return Response|WP_Error Response object or WP_Error on failure
@@ -88,8 +243,14 @@ class Client {
 			}
 		}
 
+		// Merge instance options with provided options (provided options take precedence)
+		$merged_options = array_merge(
+			array_filter( $this->options, fn( $value ) => $value !== null ),
+			$options
+		);
+
 		// Prepare request parameters
-		$params = array_merge( $options, [
+		$params = array_merge( $merged_options, [
 			'origins'      => $origins,
 			'destinations' => $destinations
 		] );
@@ -118,12 +279,6 @@ class Client {
 	 */
 	private function make_request( array $params ) {
 		$params['key'] = $this->api_key;
-
-		// Add default parameters if not set
-		$params = array_merge( [
-			'units' => 'metric',
-			'mode'  => 'driving',
-		], $params );
 
 		$url = add_query_arg( $params, self::API_ENDPOINT );
 
