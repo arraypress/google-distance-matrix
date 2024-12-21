@@ -367,6 +367,8 @@ trait Parameters {
 		return array_filter( $this->options, fn( $value ) => $value !== null );
 	}
 
+	/** Reset Options ***********************************************************/
+
 	/**
 	 * Reset all options to defaults
 	 *
