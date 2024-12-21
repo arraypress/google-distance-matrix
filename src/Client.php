@@ -21,6 +21,7 @@ use WP_Error;
  * A comprehensive utility class for interacting with the Google Distance Matrix API.
  */
 class Client {
+	use Parameters;
 
 	/**
 	 * API endpoint for the Distance Matrix API
@@ -30,89 +31,6 @@ class Client {
 	private const API_ENDPOINT = 'https://maps.googleapis.com/maps/api/distancematrix/json';
 
 	/**
-	 * Valid travel modes
-	 *
-	 * @var array<string>
-	 */
-	private const VALID_MODES = [
-		'driving',
-		'walking',
-		'bicycling',
-		'transit'
-	];
-
-	/**
-	 * Valid units
-	 *
-	 * @var array<string>
-	 */
-	private const VALID_UNITS = [
-		'metric',
-		'imperial'
-	];
-
-	/**
-	 * Valid avoid options
-	 *
-	 * @var array<string>
-	 */
-	private const VALID_AVOID = [
-		'tolls',
-		'highways',
-		'ferries'
-	];
-
-	/**
-	 * Valid traffic model options
-	 *
-	 * @var array<string>
-	 */
-	private const VALID_TRAFFIC_MODELS = [
-		'best_guess',
-		'pessimistic',
-		'optimistic'
-	];
-
-	/**
-	 * Default options for API requests
-	 *
-	 * @var array<string, string>
-	 */
-	private const DEFAULT_OPTIONS = [
-		'mode'     => 'driving',
-		'units'    => 'metric',
-		'language' => 'en'
-	];
-
-	/**
-	 * API key for Google Distance Matrix
-	 *
-	 * @var string
-	 */
-	private string $api_key;
-
-	/**
-	 * Whether to enable response caching
-	 *
-	 * @var bool
-	 */
-	private bool $enable_cache;
-
-	/**
-	 * Cache expiration time in seconds
-	 *
-	 * @var int
-	 */
-	private int $cache_expiration;
-
-	/**
-	 * Current options for the client
-	 *
-	 * @var array<string, string|null>
-	 */
-	private array $options;
-
-	/**
 	 * Initialize the Distance Matrix client
 	 *
 	 * @param string $api_key          API key for Google Distance Matrix
@@ -120,102 +38,9 @@ class Client {
 	 * @param int    $cache_expiration Cache expiration in seconds (default: 24 hours)
 	 */
 	public function __construct( string $api_key, bool $enable_cache = true, int $cache_expiration = 86400 ) {
-		$this->api_key          = $api_key;
-		$this->enable_cache     = $enable_cache;
-		$this->cache_expiration = $cache_expiration;
-		$this->options          = self::DEFAULT_OPTIONS;
-	}
-
-	/**
-	 * Set travel mode
-	 *
-	 * @param string $mode Travel mode (driving, walking, bicycling, transit)
-	 *
-	 * @return self
-	 * @throws \InvalidArgumentException If invalid mode provided
-	 */
-	public function set_mode( string $mode ): self {
-		if ( ! in_array( $mode, self::VALID_MODES ) ) {
-			throw new \InvalidArgumentException( "Invalid mode. Must be one of: " . implode( ', ', self::VALID_MODES ) );
-		}
-		$this->options['mode'] = $mode;
-
-		return $this;
-	}
-
-	/**
-	 * Set units for distance
-	 *
-	 * @param string $units Units (metric, imperial)
-	 *
-	 * @return self
-	 * @throws \InvalidArgumentException If invalid units provided
-	 */
-	public function set_units( string $units ): self {
-		if ( ! in_array( $units, self::VALID_UNITS ) ) {
-			throw new \InvalidArgumentException( "Invalid units. Must be one of: " . implode( ', ', self::VALID_UNITS ) );
-		}
-		$this->options['units'] = $units;
-
-		return $this;
-	}
-
-	/**
-	 * Set avoid options
-	 *
-	 * @param string|null $avoid Features to avoid (tolls, highways, ferries)
-	 *
-	 * @return self
-	 * @throws \InvalidArgumentException If invalid avoid option provided
-	 */
-	public function set_avoid( ?string $avoid ): self {
-		if ( $avoid !== null && ! in_array( $avoid, self::VALID_AVOID ) ) {
-			throw new \InvalidArgumentException( "Invalid avoid option. Must be one of: " . implode( ', ', self::VALID_AVOID ) );
-		}
-		$this->options['avoid'] = $avoid;
-
-		return $this;
-	}
-
-	/**
-	 * Set language for results
-	 *
-	 * @param string $language Language code
-	 *
-	 * @return self
-	 */
-	public function set_language( string $language ): self {
-		$this->options['language'] = $language;
-
-		return $this;
-	}
-
-	/**
-	 * Set traffic model
-	 *
-	 * @param string|null $model Traffic model (best_guess, pessimistic, optimistic)
-	 *
-	 * @return self
-	 * @throws \InvalidArgumentException If invalid traffic model provided
-	 */
-	public function set_traffic_model( ?string $model ): self {
-		if ( $model !== null && ! in_array( $model, self::VALID_TRAFFIC_MODELS ) ) {
-			throw new \InvalidArgumentException( "Invalid traffic model. Must be one of: " . implode( ', ', self::VALID_TRAFFIC_MODELS ) );
-		}
-		$this->options['traffic_model'] = $model;
-
-		return $this;
-	}
-
-	/**
-	 * Reset options to defaults
-	 *
-	 * @return self
-	 */
-	public function reset_options(): self {
-		$this->options = self::DEFAULT_OPTIONS;
-
-		return $this;
+		$this->set_api_key( $api_key );
+		$this->set_cache_enabled( $enable_cache );
+		$this->set_cache_expiration( $cache_expiration );
 	}
 
 	/**
@@ -236,7 +61,7 @@ class Client {
 		$cache_key = $this->get_cache_key( "matrix_{$origins}_{$destinations}_" . md5( serialize( $options ) ) );
 
 		// Check cache
-		if ( $this->enable_cache ) {
+		if ( $this->is_cache_enabled() ) {
 			$cached_data = get_transient( $cache_key );
 			if ( false !== $cached_data ) {
 				return new Response( $cached_data );
@@ -245,7 +70,7 @@ class Client {
 
 		// Merge instance options with provided options (provided options take precedence)
 		$merged_options = array_merge(
-			array_filter( $this->options, fn( $value ) => $value !== null ),
+			$this->get_all_options(),
 			$options
 		);
 
@@ -263,8 +88,8 @@ class Client {
 		}
 
 		// Cache response
-		if ( $this->enable_cache ) {
-			set_transient( $cache_key, $response, $this->cache_expiration );
+		if ( $this->is_cache_enabled() ) {
+			set_transient( $cache_key, $response, $this->get_cache_expiration() );
 		}
 
 		return new Response( $response );
@@ -278,7 +103,7 @@ class Client {
 	 * @return array|WP_Error Response array or WP_Error on failure
 	 */
 	private function make_request( array $params ) {
-		$params['key'] = $this->api_key;
+		$params['key'] = $this->get_api_key();
 
 		$url = add_query_arg( $params, self::API_ENDPOINT );
 
@@ -328,7 +153,7 @@ class Client {
 	 * @return string Cache key
 	 */
 	private function get_cache_key( string $identifier ): string {
-		return 'google_distance_matrix_' . md5( $identifier . $this->api_key );
+		return 'google_distance_matrix_' . md5( $identifier . $this->get_api_key() );
 	}
 
 	/**
