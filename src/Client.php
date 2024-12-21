@@ -13,6 +13,7 @@ declare( strict_types=1 );
 
 namespace ArrayPress\Google\DistanceMatrix;
 
+use ArrayPress\Google\DistanceMatrix\Traits\Parameters;
 use WP_Error;
 
 /**
