@@ -38,7 +38,7 @@ trait Parameters {
 	 */
 	private array $cache_settings = [
 		'enabled'    => true,
-		'expiration' => 86400 // 24 hours
+		'expiration' => DAY_IN_SECONDS
 	];
 
 	/**
